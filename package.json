@@ -11,7 +11,7 @@
     "build:types": "tsc --p ./tsconfig.types.json",
     "build:test": "tsc --p tsconfig.test.json",
     "start:web": "ts-node --project web/tsconfig.json web/server.ts",
-    "prepare": "npm run build"
+    "prepare": "test \"$VERCEL\" = '1' && echo 'Skipping build on Vercel' || npm run build"
   },
   "repository": {
     "type": "git",
