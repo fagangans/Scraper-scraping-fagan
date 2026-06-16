@@ -1,5 +1,7 @@
 {
   "version": 2,
+  "installCommand": "npm install --ignore-scripts",
+  "buildCommand": "echo 'No build step needed for static site + serverless functions'",
   "functions": {
     "api/search.ts": {
       "maxDuration": 30
