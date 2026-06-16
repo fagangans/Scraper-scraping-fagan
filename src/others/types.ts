@@ -89,6 +89,29 @@ interface Iresponse {
 	favicon: string;
 }
 
+export interface GoogleMapsResult {
+	name: string;
+	rating: number;
+	reviews: number;
+	category: string;
+	address: string;
+	phone: string;
+	website: string;
+	mapsUrl: string;
+	location: string;
+}
+
+export interface GoogleMapsOptions {
+	limit?: number;
+	language?: string;
+}
+
+export interface GoogleMapsExportOptions {
+	filepath?: string;
+	format?: "json" | "csv";
+	pretty?: boolean;
+}
+
 export interface MinecraftJava {
 	// generate types from return function minecraftJava in minecraft.ts
 	ip: string;

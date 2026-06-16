@@ -12,6 +12,10 @@ import {
     lyricsv2,
     kbbi,
     statusJava,
+    googleMaps,
+    googleMapsExport,
+    googleMapsFilter,
+    googleMapsSummary,
 } from './index'
 
 describe('Others', () => {
@@ -187,6 +191,88 @@ describe('Others', () => {
         //         return done()
         //     }).catch(done)
         // })
+    })
+
+    describe('Google Maps', () => {
+        it('Google Maps Search', done => {
+            googleMaps('restoran', 'palembang', { limit: 5 }).then(res => {
+                expect(res).to.be.an('array')
+                res.forEach(({
+                    name,
+                    rating,
+                    reviews,
+                    category,
+                    address,
+                    phone,
+                    website,
+                    mapsUrl,
+                    location,
+                }) => {
+                    expect(name).to.be.a('string')
+                    expect(name).to.have.lengthOf.at.least(1)
+                    expect(rating).to.be.a('number')
+                    expect(reviews).to.be.a('number')
+                    expect(category).to.be.a('string')
+                    expect(address).to.be.a('string')
+                    expect(phone).to.be.a('string')
+                    expect(website).to.be.a('string')
+                    expect(mapsUrl).to.be.a('string')
+                    expect(location).to.be.a('string')
+                })
+
+                return done()
+            }).catch(done)
+        })
+
+        it('Google Maps Export JSON', done => {
+            googleMaps('hotel', 'jakarta', { limit: 3 }).then(res => {
+                const json = googleMapsExport(res, { format: 'json' })
+                expect(json).to.be.a('string')
+                const parsed = JSON.parse(json)
+                expect(parsed.totalResults).to.be.a('number')
+                expect(parsed.results).to.be.an('array')
+
+                return done()
+            }).catch(done)
+        })
+
+        it('Google Maps Export CSV', done => {
+            googleMaps('cafe', 'bandung', { limit: 3 }).then(res => {
+                const csv = googleMapsExport(res, { format: 'csv' })
+                expect(csv).to.be.a('string')
+                expect(csv).to.include('Nama')
+                expect(csv).to.include('Rating')
+
+                return done()
+            }).catch(done)
+        })
+
+        it('Google Maps Filter', done => {
+            googleMaps('restoran', 'surabaya', { limit: 10 }).then(res => {
+                const filtered = googleMapsFilter(res, { minRating: 4.0 })
+                expect(filtered).to.be.an('array')
+                filtered.forEach(r => {
+                    expect(r.rating).to.be.at.least(4.0)
+                })
+
+                return done()
+            }).catch(done)
+        })
+
+        it('Google Maps Summary', done => {
+            googleMaps('toko', 'yogyakarta', { limit: 5 }).then(res => {
+                const summary = googleMapsSummary(res)
+                expect(summary.total).to.be.a('number')
+                expect(summary.avgRating).to.be.a('number')
+                expect(summary.totalReviews).to.be.a('number')
+                expect(summary.withPhone).to.be.a('number')
+                expect(summary.withWebsite).to.be.a('number')
+                expect(summary.categories).to.be.an('object')
+                expect(summary.topRated).to.be.an('array')
+
+                return done()
+            }).catch(done)
+        })
     })
 
     it('KBBI', done => {
