@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import got from "got";
-import cheerio from "cheerio";
+import * as cheerio from "cheerio";
 
 interface GoogleMapsResult {
     name: string;
@@ -14,35 +13,37 @@ interface GoogleMapsResult {
     location: string;
 }
 
-const defaultHeaders = {
-    "user-agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "accept-language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
-    accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-};
+const USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+];
+
+function pickUA(): string {
+    return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+}
 
 function extractPhone(text: string): string {
     const patterns = [
-        /(?:\+62|062|62|0)[\s-]?(?:\d{2,4})[\s-]?(?:\d{3,4})[\s-]?(?:\d{3,5})/,
+        /(?:\+62|062|62|0)[\s-]?\d{2,4}[\s-]?\d{3,4}[\s-]?\d{3,5}/,
         /\(?\d{3,4}\)?[\s.-]?\d{3,4}[\s.-]?\d{3,5}/,
     ];
-    for (const pattern of patterns) {
-        const match = text.match(pattern);
-        if (match) return match[0].trim();
+    for (const p of patterns) {
+        const m = text.match(p);
+        if (m) return m[0].trim();
     }
     return "";
 }
 
 function parseRating(text: string): number {
-    const cleaned = text.replace(",", ".").trim();
-    const num = parseFloat(cleaned);
-    return isNaN(num) ? 0 : num;
+    const n = parseFloat(text.replace(",", ".").trim());
+    return isNaN(n) ? 0 : n;
 }
 
 function parseReviewCount(text: string): number {
-    const match = text.match(/\(?([\d.,]+)\)?/);
-    if (!match) return 0;
-    return parseInt(match[1].replace(/[.,]/g, "")) || 0;
+    const m = text.match(/\(?([\d.,]+)\)?/);
+    if (!m) return 0;
+    return parseInt(m[1].replace(/[.,]/g, "")) || 0;
 }
 
 function safeDecode(value: string): string {
@@ -54,17 +55,39 @@ function safeDecode(value: string): string {
     }
 }
 
-async function scrapeGoogleMaps(
-    keyword: string,
-    location: string,
-    limit: number
-): Promise<GoogleMapsResult[]> {
-    const query = `${keyword} di ${location}`;
-    const html = await got("https://www.google.com/search", {
-        searchParams: { q: query, tbm: "lcl", hl: "id", gl: "id" },
-        headers: defaultHeaders,
-    }).text();
+async function fetchHTML(url: string): Promise<string> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
 
+    try {
+        const res = await fetch(url, {
+            headers: {
+                "user-agent": pickUA(),
+                "accept-language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
+                accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            },
+            signal: controller.signal,
+            redirect: "follow",
+        });
+
+        if (!res.ok) {
+            const body = await res.text().catch(() => "");
+            if (res.status === 429) {
+                throw new Error("Google menolak permintaan (rate limited). Coba lagi dalam beberapa menit.");
+            }
+            if (res.status === 403) {
+                throw new Error("Google memblokir permintaan dari server ini. Ini umum terjadi pada hosting cloud.");
+            }
+            throw new Error(`Google mengembalikan HTTP ${res.status}. Coba lagi nanti.`);
+        }
+
+        return await res.text();
+    } finally {
+        clearTimeout(timeout);
+    }
+}
+
+function parseResults(html: string, location: string, limit: number): GoogleMapsResult[] {
     const $ = cheerio.load(html);
     const results: GoogleMapsResult[] = [];
 
@@ -108,8 +131,7 @@ async function scrapeGoogleMaps(
             if (addrEl.length) address = addrEl.text().trim();
         }
 
-        const fullText = el.text();
-        if (!phone) phone = extractPhone(fullText);
+        if (!phone) phone = extractPhone(el.text());
 
         const website =
             el.find('a[data-dtype="d3web"]').attr("href") ||
@@ -134,30 +156,7 @@ async function scrapeGoogleMaps(
         });
     });
 
-    if (results.length === 0) {
-        return scrapeGoogleMapsV2(keyword, location, limit);
-    }
-
-    return results;
-}
-
-async function scrapeGoogleMapsV2(
-    keyword: string,
-    location: string,
-    limit: number
-): Promise<GoogleMapsResult[]> {
-    const query = `${keyword} di ${location}`;
-    const html = await got("https://www.google.com/search", {
-        searchParams: { q: query, tbm: "lcl", hl: "id", gl: "id", sa: "X" },
-        headers: {
-            ...defaultHeaders,
-            "user-agent":
-                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-        },
-    }).text();
-
-    const $ = cheerio.load(html);
-    const results: GoogleMapsResult[] = [];
+    if (results.length > 0) return results;
 
     $("div[data-cid]").each(function () {
         if (results.length >= limit) return false;
@@ -207,25 +206,13 @@ async function scrapeGoogleMapsV2(
             category,
             address,
             phone,
-            website,
+            website: safeDecode(website),
             mapsUrl: "",
             location,
         });
     });
 
     return results;
-}
-
-function filterResults(
-    results: GoogleMapsResult[],
-    minRating: number,
-    hasPhone: boolean
-): GoogleMapsResult[] {
-    return results.filter((r) => {
-        if (minRating > 0 && r.rating < minRating) return false;
-        if (hasPhone && !r.phone) return false;
-        return true;
-    });
 }
 
 function buildSummary(results: GoogleMapsResult[]) {
@@ -251,27 +238,47 @@ function buildSummary(results: GoogleMapsResult[]) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    if (req.method !== "GET") {
-        return res.status(405).json({ error: "Method not allowed" });
-    }
-
-    const keyword = (req.query.keyword as string)?.trim();
-    const location = (req.query.location as string)?.trim();
-    const limit = parseInt((req.query.limit as string) || "20", 10);
-    const minRating = parseFloat((req.query.minRating as string) || "0");
-    const hasPhone = req.query.hasPhone === "true";
-
-    if (!keyword || !location) {
-        return res.status(400).json({
-            error: "Parameter 'keyword' dan 'location' wajib diisi.",
-        });
-    }
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
 
     try {
-        let results = await scrapeGoogleMaps(keyword, location, limit);
-        if (minRating > 0 || hasPhone) {
-            results = filterResults(results, minRating, hasPhone);
+        if (req.method !== "GET") {
+            return res.status(405).json({ error: "Method not allowed" });
         }
+
+        const keyword = (req.query.keyword as string)?.trim();
+        const location = (req.query.location as string)?.trim();
+        const limit = parseInt((req.query.limit as string) || "20", 10);
+        const minRating = parseFloat((req.query.minRating as string) || "0");
+        const hasPhone = req.query.hasPhone === "true";
+
+        if (!keyword || !location) {
+            return res.status(400).json({
+                error: "Parameter 'keyword' dan 'location' wajib diisi.",
+            });
+        }
+
+        const query = encodeURIComponent(`${keyword} di ${location}`);
+        const url = `https://www.google.com/search?q=${query}&tbm=lcl&hl=id&gl=id`;
+
+        const html = await fetchHTML(url);
+        let results = parseResults(html, location, limit);
+
+        if (minRating > 0 || hasPhone) {
+            results = results.filter((r) => {
+                if (minRating > 0 && r.rating < minRating) return false;
+                if (hasPhone && !r.phone) return false;
+                return true;
+            });
+        }
+
+        if (results.length === 0) {
+            return res.status(200).json({
+                results: [],
+                summary: buildSummary([]),
+                warning: "Tidak ditemukan hasil. Google mungkin memblokir permintaan dari server cloud, atau kata kunci tidak menghasilkan bisnis lokal.",
+            });
+        }
+
         const summary = buildSummary(results);
         return res.status(200).json({ results, summary });
     } catch (err: any) {

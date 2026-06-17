@@ -45,10 +45,21 @@
                 hasPhone: hasPhoneInput.checked ? "true" : "false",
             });
             const res = await fetch(`/api/search?${params.toString()}`);
-            const data = await res.json();
+            const text = await res.text();
+
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch {
+                throw new Error("Server mengembalikan respons tidak valid. Coba lagi dalam beberapa saat.");
+            }
 
             if (!res.ok) {
                 throw new Error(data.error || "Pencarian gagal.");
+            }
+
+            if (data.warning) {
+                showStatus("info", data.warning);
             }
 
             currentResults = data.results || [];
