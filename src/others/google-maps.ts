@@ -9,7 +9,24 @@ const defaultHeaders = {
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "accept-language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
     accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+    // Lewati halaman consent/persetujuan cookie Google yang muncul untuk
+    // sesi baru tanpa cookie (penyebab umum "tidak ada hasil").
+    cookie: "CONSENT=YES+cb.20240101-00-p0.id+FX+000; SOCS=CAESEwgDEgk0ODE3Nzk3MjQaAmVuIAEaBgiA_LyaBg",
 };
+
+// Set DEBUG_GMAPS=1 untuk menyimpan HTML mentah dari Google ke file,
+// supaya bisa diperiksa kalau hasil kosong (selector tidak cocok / consent / captcha).
+function debugDumpHtml(html: string, tag: string): void {
+    if (process.env.DEBUG_GMAPS !== "1") return;
+    try {
+        const file = `google-debug-${tag}-${Date.now()}.html`;
+        fs.writeFileSync(file, html, "utf-8");
+        // eslint-disable-next-line no-console
+        console.log(`  [debug] HTML mentah disimpan ke ${file} (${html.length} bytes)`);
+    } catch {
+        /* abaikan kegagalan tulis */
+    }
+}
 
 function extractPhone(text: string): string {
     const patterns = [
@@ -61,6 +78,8 @@ export async function googleMaps(
         },
         headers: defaultHeaders,
     }).text();
+
+    debugDumpHtml(html, "v1");
 
     const $ = cheerio.load(html);
     const results: GoogleMapsResult[] = [];
@@ -161,6 +180,8 @@ export async function googleMapsv2(
         },
     }).text();
 
+    debugDumpHtml(html, "v2");
+
     const $ = cheerio.load(html);
     const results: GoogleMapsResult[] = [];
 
@@ -215,8 +236,32 @@ export async function googleMapsv2(
     });
 
     if (results.length === 0) {
+        const lower = html.toLowerCase();
+        if (
+            lower.includes("consent.google.com") ||
+            lower.includes("before you continue") ||
+            lower.includes("sebelum melanjutkan ke google")
+        ) {
+            throw new ScraperError(
+                "Google menampilkan halaman persetujuan cookie (consent), bukan hasil pencarian. " +
+                    "Jalankan dengan DEBUG_GMAPS=1 untuk menyimpan HTML mentah dan kirim ke developer."
+            );
+        }
+        if (
+            lower.includes("/sorry/") ||
+            lower.includes("unusual traffic") ||
+            lower.includes("captcha") ||
+            lower.includes("lalu lintas tidak biasa")
+        ) {
+            throw new ScraperError(
+                "Google mendeteksi lalu lintas tidak biasa dan meminta verifikasi (captcha). " +
+                    "Tunggu beberapa menit lalu coba lagi, atau gunakan koneksi/IP berbeda."
+            );
+        }
         throw new ScraperError(
-            `Tidak ditemukan hasil untuk "${keyword}" di "${location}". Coba kata kunci lain.`
+            `Tidak ditemukan hasil untuk "${keyword}" di "${location}". ` +
+                "Struktur halaman Google mungkin berubah. Jalankan dengan DEBUG_GMAPS=1 " +
+                "untuk menyimpan HTML mentah dan kirim ke developer untuk update selector."
         );
     }
 
