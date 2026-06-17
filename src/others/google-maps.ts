@@ -61,27 +61,30 @@ function safeDecode(value: string): string {
     }
 }
 
-export async function googleMaps(
-    keyword: string,
-    location: string,
-    options: GoogleMapsOptions = {}
-): Promise<GoogleMapsResult[]> {
-    const { limit = 20, language = "id" } = options;
-    const query = `${keyword} di ${location}`;
-    const url = `https://www.google.com/search`;
-    const html = await got(url, {
-        searchParams: {
-            q: query,
-            tbm: "lcl",
-            hl: language,
-            gl: "id",
-        },
-        headers: defaultHeaders,
-    }).text();
+function detectBlockReason(html: string): string | null {
+    const lower = html.toLowerCase();
+    if (
+        lower.includes("consent.google.com") ||
+        lower.includes("before you continue") ||
+        lower.includes("sebelum melanjutkan ke google")
+    ) {
+        return "Google menampilkan halaman persetujuan cookie (consent), bukan hasil pencarian.";
+    }
+    if (
+        lower.includes("/sorry/") ||
+        lower.includes("unusual traffic") ||
+        lower.includes("captcha") ||
+        lower.includes("lalu lintas tidak biasa")
+    ) {
+        return "Google mendeteksi lalu lintas tidak biasa dan meminta verifikasi (captcha). Tunggu beberapa menit lalu coba lagi.";
+    }
+    if (lower.includes("/httpservice/retry/enablejs")) {
+        return "Google meminta verifikasi JavaScript (enablejs challenge) yang tidak bisa dilewati request HTTP biasa. Gunakan mode headless browser.";
+    }
+    return null;
+}
 
-    debugDumpHtml(html, "v1");
-
-    const $ = cheerio.load(html);
+function parsePrimary($: cheerio.CheerioAPI, location: string, limit: number): GoogleMapsResult[] {
     const results: GoogleMapsResult[] = [];
 
     $("div.VkpGBb").each(function () {
@@ -150,39 +153,10 @@ export async function googleMaps(
         });
     });
 
-    if (results.length === 0) {
-        return googleMapsv2(keyword, location, options);
-    }
-
     return results;
 }
 
-export async function googleMapsv2(
-    keyword: string,
-    location: string,
-    options: GoogleMapsOptions = {}
-): Promise<GoogleMapsResult[]> {
-    const { limit = 20, language = "id" } = options;
-    const query = `${keyword} di ${location}`;
-    const url = `https://www.google.com/search`;
-    const html = await got(url, {
-        searchParams: {
-            q: query,
-            tbm: "lcl",
-            hl: language,
-            gl: "id",
-            sa: "X",
-        },
-        headers: {
-            ...defaultHeaders,
-            "user-agent":
-                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-        },
-    }).text();
-
-    debugDumpHtml(html, "v2");
-
-    const $ = cheerio.load(html);
+function parseFallback($: cheerio.CheerioAPI, location: string, limit: number): GoogleMapsResult[] {
     const results: GoogleMapsResult[] = [];
 
     $("div[data-cid]").each(function () {
@@ -235,28 +209,71 @@ export async function googleMapsv2(
         });
     });
 
+    return results;
+}
+
+export async function googleMaps(
+    keyword: string,
+    location: string,
+    options: GoogleMapsOptions = {}
+): Promise<GoogleMapsResult[]> {
+    const { limit = 20, language = "id" } = options;
+    const query = `${keyword} di ${location}`;
+    const url = `https://www.google.com/search`;
+    const html = await got(url, {
+        searchParams: {
+            q: query,
+            tbm: "lcl",
+            hl: language,
+            gl: "id",
+        },
+        headers: defaultHeaders,
+    }).text();
+
+    debugDumpHtml(html, "v1");
+
+    const $ = cheerio.load(html);
+    const results = parsePrimary($, location, limit);
+
     if (results.length === 0) {
-        const lower = html.toLowerCase();
-        if (
-            lower.includes("consent.google.com") ||
-            lower.includes("before you continue") ||
-            lower.includes("sebelum melanjutkan ke google")
-        ) {
-            throw new ScraperError(
-                "Google menampilkan halaman persetujuan cookie (consent), bukan hasil pencarian. " +
-                    "Jalankan dengan DEBUG_GMAPS=1 untuk menyimpan HTML mentah dan kirim ke developer."
-            );
-        }
-        if (
-            lower.includes("/sorry/") ||
-            lower.includes("unusual traffic") ||
-            lower.includes("captcha") ||
-            lower.includes("lalu lintas tidak biasa")
-        ) {
-            throw new ScraperError(
-                "Google mendeteksi lalu lintas tidak biasa dan meminta verifikasi (captcha). " +
-                    "Tunggu beberapa menit lalu coba lagi, atau gunakan koneksi/IP berbeda."
-            );
+        return googleMapsv2(keyword, location, options);
+    }
+
+    return results;
+}
+
+export async function googleMapsv2(
+    keyword: string,
+    location: string,
+    options: GoogleMapsOptions = {}
+): Promise<GoogleMapsResult[]> {
+    const { limit = 20, language = "id" } = options;
+    const query = `${keyword} di ${location}`;
+    const url = `https://www.google.com/search`;
+    const html = await got(url, {
+        searchParams: {
+            q: query,
+            tbm: "lcl",
+            hl: language,
+            gl: "id",
+            sa: "X",
+        },
+        headers: {
+            ...defaultHeaders,
+            "user-agent":
+                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        },
+    }).text();
+
+    debugDumpHtml(html, "v2");
+
+    const $ = cheerio.load(html);
+    const results = parseFallback($, location, limit);
+
+    if (results.length === 0) {
+        const reason = detectBlockReason(html);
+        if (reason) {
+            throw new ScraperError(`${reason} Jalankan dengan DEBUG_GMAPS=1 untuk menyimpan HTML mentah.`);
         }
         throw new ScraperError(
             `Tidak ditemukan hasil untuk "${keyword}" di "${location}". ` +
@@ -266,6 +283,73 @@ export async function googleMapsv2(
     }
 
     return results;
+}
+
+/**
+ * Versi headless browser (Puppeteer). Membuka Chrome tanpa tampilan, benar-benar
+ * menjalankan JavaScript Google sehingga lolos dari challenge "enablejs" yang
+ * memblokir request HTTP biasa (got/fetch). Hanya untuk pemakaian lokal —
+ * tidak cocok dijalankan di Vercel serverless (ukuran Chromium terlalu besar).
+ */
+export async function googleMapsHeadless(
+    keyword: string,
+    location: string,
+    options: GoogleMapsOptions = {}
+): Promise<GoogleMapsResult[]> {
+    const { limit = 20, language = "id" } = options;
+
+    let puppeteer: any;
+    try {
+        puppeteer = require("puppeteer");
+    } catch {
+        throw new ScraperError(
+            "Paket 'puppeteer' belum terinstal. Jalankan: npm install puppeteer"
+        );
+    }
+
+    const query = `${keyword} di ${location}`;
+    const url = `https://www.google.com/search?q=${encodeURIComponent(query)}&tbm=lcl&hl=${language}&gl=id`;
+
+    const browser = await puppeteer.launch({
+        headless: true,
+        args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-blink-features=AutomationControlled"],
+    });
+
+    try {
+        const page = await browser.newPage();
+        await page.setUserAgent(defaultHeaders["user-agent"]);
+        await page.setExtraHTTPHeaders({ "accept-language": defaultHeaders["accept-language"] });
+        await page.setCookie(
+            { name: "CONSENT", value: "YES+cb.20240101-00-p0.id+FX+000", domain: ".google.com" },
+            { name: "SOCS", value: "CAESEwgDEgk0ODE3Nzk3MjQaAmVuIAEaBgiA_LyaBg", domain: ".google.com" }
+        );
+
+        await page.goto(url, { waitUntil: "networkidle2", timeout: 30000 });
+        // Halaman challenge "enablejs" mengalihkan otomatis setelah JS jalan;
+        // beri waktu tambahan dan tunggu jika masih ada redirect lanjutan.
+        await page.waitForNetworkIdle({ idleTime: 800, timeout: 15000 }).catch(() => {});
+
+        const html = await page.content();
+        debugDumpHtml(html, "headless");
+
+        const $ = cheerio.load(html);
+        let results = parsePrimary($, location, limit);
+        if (results.length === 0) {
+            results = parseFallback($, location, limit);
+        }
+
+        if (results.length === 0) {
+            const reason = detectBlockReason(html);
+            throw new ScraperError(
+                reason ||
+                    `Tidak ditemukan hasil untuk "${keyword}" di "${location}". Coba kata kunci lain.`
+            );
+        }
+
+        return results;
+    } finally {
+        await browser.close();
+    }
 }
 
 export function googleMapsExport(

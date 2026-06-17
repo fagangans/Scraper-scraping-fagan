@@ -4,6 +4,7 @@ import * as path from "path";
 import { URL } from "url";
 import {
     googleMaps,
+    googleMapsHeadless,
     googleMapsFilter,
     googleMapsSummary,
 } from "../src/others/google-maps";
@@ -57,7 +58,13 @@ const server = http.createServer(async (req, res) => {
         }
 
         try {
-            let results = await googleMaps(keyword, location, { limit });
+            let results: Awaited<ReturnType<typeof googleMaps>>;
+            try {
+                results = await googleMapsHeadless(keyword, location, { limit });
+            } catch (headlessErr: any) {
+                console.warn(`  [headless gagal] ${headlessErr.message} — mencoba mode HTTP biasa...`);
+                results = await googleMaps(keyword, location, { limit });
+            }
             if (minRating > 0 || hasPhone) {
                 results = googleMapsFilter(results, { minRating, hasPhone });
             }
