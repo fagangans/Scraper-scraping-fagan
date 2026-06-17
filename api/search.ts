@@ -1,3 +1,4 @@
+/// <reference lib="dom" />
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import * as cheerio from "cheerio";
 
