@@ -35,6 +35,15 @@ function parseReviewCount(text: string): number {
     return parseInt(match[1].replace(/[.,]/g, "")) || 0;
 }
 
+function safeDecode(value: string): string {
+    if (!value) return "";
+    try {
+        return decodeURIComponent(value);
+    } catch {
+        return value;
+    }
+}
+
 export async function googleMaps(
     keyword: string,
     location: string,
@@ -116,7 +125,7 @@ export async function googleMaps(
             category,
             address,
             phone,
-            website: website ? decodeURIComponent(website) : "",
+            website: safeDecode(website),
             mapsUrl: mapsLink ? `https://www.google.com${mapsLink}` : "",
             location,
         });
