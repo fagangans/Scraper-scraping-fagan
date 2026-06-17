@@ -118,6 +118,77 @@
         );
     });
 
+    document.getElementById("exportPdf").addEventListener("click", () => {
+        if (!currentResults.length) return;
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(16);
+        doc.setTextColor(30, 64, 175);
+        doc.text("MapsBiz Scraper — Data Bisnis", 14, 15);
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        doc.setTextColor(100, 116, 139);
+        doc.text(`${currentQuery.keyword} di ${currentQuery.location} | ${new Date().toLocaleDateString("id-ID")} | Total: ${currentResults.length} data`, 14, 22);
+
+        const headers = [["No", "Nama", "Alamat", "Website", "Nomor HP", "Rating"]];
+        const rows = currentResults.map((r, i) => [
+            i + 1,
+            r.name || "-",
+            r.address || "-",
+            r.website || "-",
+            r.phone || "-",
+            r.rating ? r.rating.toFixed(1) : "-",
+        ]);
+
+        doc.autoTable({
+            head: headers,
+            body: rows,
+            startY: 28,
+            theme: "grid",
+            headStyles: {
+                fillColor: [30, 64, 175],
+                textColor: 255,
+                fontStyle: "bold",
+                fontSize: 9,
+                halign: "center",
+            },
+            bodyStyles: {
+                fontSize: 8,
+                textColor: [30, 41, 59],
+            },
+            alternateRowStyles: {
+                fillColor: [248, 250, 252],
+            },
+            columnStyles: {
+                0: { halign: "center", cellWidth: 12 },
+                1: { cellWidth: 55 },
+                2: { cellWidth: 70 },
+                3: { cellWidth: 55 },
+                4: { cellWidth: 35, halign: "center" },
+                5: { halign: "center", cellWidth: 18 },
+            },
+            margin: { left: 14, right: 14 },
+            didDrawPage: function (data) {
+                doc.setFontSize(7);
+                doc.setTextColor(148, 163, 184);
+                doc.text(
+                    `Halaman ${doc.internal.getNumberOfPages()}`,
+                    doc.internal.pageSize.width - 14,
+                    doc.internal.pageSize.height - 8,
+                    { align: "right" }
+                );
+            },
+        });
+
+        const filename = `${currentQuery.keyword}-${currentQuery.location}.pdf`
+            .replace(/\s+/g, "-")
+            .toLowerCase();
+        doc.save(filename);
+    });
+
     function csvEscape(val) {
         if (val == null) return '""';
         return `"${String(val).replace(/"/g, '""')}"`;
