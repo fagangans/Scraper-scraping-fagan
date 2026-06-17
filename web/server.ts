@@ -74,6 +74,18 @@ const server = http.createServer(async (req, res) => {
     res.end("404 Not Found");
 });
 
+server.on("error", (err: NodeJS.ErrnoException) => {
+    if (err.code === "EADDRINUSE") {
+        const next = PORT + 1;
+        console.log(`  Port ${PORT} sudah dipakai, mencoba port ${next}...`);
+        server.listen(next, () => {
+            console.log(`\n  MapsBiz Scraper running at http://localhost:${next}\n`);
+        });
+    } else {
+        throw err;
+    }
+});
+
 server.listen(PORT, () => {
     console.log(`\n  MapsBiz Scraper running at http://localhost:${PORT}\n`);
 });
