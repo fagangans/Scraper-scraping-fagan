@@ -310,10 +310,33 @@ export async function googleMapsHeadless(
     const query = `${keyword} di ${location}`;
     const url = `https://www.google.com/search?q=${encodeURIComponent(query)}&tbm=lcl&hl=${language}&gl=id`;
 
-    const browser = await puppeteer.launch({
-        headless: true,
-        args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-blink-features=AutomationControlled"],
-    });
+    let browser: any;
+    try {
+        browser = await puppeteer.launch({
+            headless: true,
+            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+            args: [
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-gpu",
+                "--disable-blink-features=AutomationControlled",
+            ],
+            timeout: 30000,
+        });
+    } catch (launchErr: any) {
+        const msg = String((launchErr && launchErr.message) || launchErr);
+        if (/libnss3|libatk|libgbm|error while loading shared libraries|shared object file|Failed to launch/i.test(msg)) {
+            throw new ScraperError(
+                "Chrome gagal dijalankan karena library sistem belum lengkap di server ini. " +
+                    "Di Ubuntu/Debian jalankan: sudo apt-get update && sudo apt-get install -y " +
+                    "libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 " +
+                    "libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2 libpango-1.0-0 libpangocairo-1.0-0 " +
+                    "libcairo2 fonts-liberation. Detail: " + msg
+            );
+        }
+        throw new ScraperError(`Gagal membuka headless Chrome: ${msg}`);
+    }
 
     try {
         const page = await browser.newPage();

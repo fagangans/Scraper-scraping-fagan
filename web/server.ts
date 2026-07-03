@@ -11,6 +11,16 @@ import {
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 const PUBLIC_DIR = path.join(__dirname, "public");
+const SEARCH_TIMEOUT_MS = 60000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+    return Promise.race([
+        promise,
+        new Promise<T>((_, reject) =>
+            setTimeout(() => reject(new Error(`${label} melebihi batas waktu ${ms / 1000} detik.`)), ms)
+        ),
+    ]);
+}
 
 const MIME: { [ext: string]: string } = {
     ".html": "text/html; charset=utf-8",
@@ -60,10 +70,26 @@ const server = http.createServer(async (req, res) => {
         try {
             let results: Awaited<ReturnType<typeof googleMaps>>;
             try {
-                results = await googleMapsHeadless(keyword, location, { limit });
+                results = await withTimeout(
+                    googleMapsHeadless(keyword, location, { limit }),
+                    SEARCH_TIMEOUT_MS,
+                    "Pencarian headless browser"
+                );
             } catch (headlessErr: any) {
-                console.warn(`  [headless gagal] ${headlessErr.message} — mencoba mode HTTP biasa...`);
-                results = await googleMaps(keyword, location, { limit });
+                const headlessMsg = headlessErr.message || String(headlessErr);
+                console.warn(`  [headless gagal] ${headlessMsg} — mencoba mode HTTP biasa...`);
+                try {
+                    results = await withTimeout(
+                        googleMaps(keyword, location, { limit }),
+                        SEARCH_TIMEOUT_MS,
+                        "Pencarian HTTP"
+                    );
+                } catch (httpErr: any) {
+                    throw new Error(
+                        `Mode headless browser gagal: ${headlessMsg}\n` +
+                            `Mode HTTP biasa (fallback) juga gagal: ${httpErr.message || httpErr}`
+                    );
+                }
             }
             if (minRating > 0 || hasPhone) {
                 results = googleMapsFilter(results, { minRating, hasPhone });
