@@ -25,7 +25,7 @@
   "homepage": "https://github.com/BochilTeam/scraper#readme",
   "devDependencies": {
     "@types/chai": "^4.3.0",
-    "@types/mocha": "^9.1.0",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^17.0.9",
     "@types/ws": "^8.2.2",
     "@vercel/node": "^5.8.17",
