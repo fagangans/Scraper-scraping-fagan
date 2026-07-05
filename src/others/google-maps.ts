@@ -354,27 +354,53 @@ export async function googleMapsHeadless(
 
         // Cookie CONSENT saja kadang tidak cukup (mis. dari IP data center),
         // Google tetap menampilkan halaman persetujuan interaktif. Coba klik
-        // tombol "Accept all/Terima semua/I agree" secara otomatis kalau muncul.
-        if (/consent\.google\.com/i.test(page.url())) {
-            const clicked = await page.evaluate(() => {
-                const texts = ["accept all", "i agree", "terima semua", "setuju"];
-                const candidates = Array.from(
-                    document.querySelectorAll("button, div[role='button']")
-                ) as HTMLElement[];
-                for (const el of candidates) {
-                    const t = (el.innerText || "").trim().toLowerCase();
-                    if (texts.some((needle) => t === needle || t.includes(needle))) {
-                        el.click();
+        // tombol accept secara otomatis kalau muncul, baik di halaman utama
+        // maupun di dalam iframe (beberapa varian consent Google memakainya).
+        async function clickConsentButton(frame: any): Promise<boolean> {
+            return frame
+                .evaluate(() => {
+                    // #L2AGLb adalah id tombol "I agree" yang sudah lama stabil
+                    // dipakai Google di halaman consent.google.com.
+                    const byId = document.querySelector<HTMLElement>("#L2AGLb");
+                    if (byId) {
+                        byId.click();
                         return true;
                     }
+                    const texts = ["accept all", "i agree", "terima semua", "setuju", "saya setuju"];
+                    const candidates = Array.from(
+                        document.querySelectorAll<HTMLElement>(
+                            "button, div[role='button'], span[role='button']"
+                        )
+                    );
+                    for (const el of candidates) {
+                        const t = (el.innerText || el.textContent || "").trim().toLowerCase();
+                        if (texts.some((needle) => t === needle || t.includes(needle))) {
+                            el.click();
+                            return true;
+                        }
+                    }
+                    return false;
+                })
+                .catch(() => false);
+        }
+
+        if (/consent\.google\.com/i.test(page.url())) {
+            let clicked = await clickConsentButton(page.mainFrame());
+            if (!clicked) {
+                for (const frame of page.frames()) {
+                    if (await clickConsentButton(frame)) {
+                        clicked = true;
+                        break;
+                    }
                 }
-                return false;
-            });
+            }
             if (clicked) {
                 await page
                     .waitForNavigation({ waitUntil: "networkidle2", timeout: 15000 })
                     .catch(() => {});
                 await page.waitForNetworkIdle({ idleTime: 800, timeout: 15000 }).catch(() => {});
+            } else {
+                debugDumpHtml(await page.content(), "consent-not-clicked");
             }
         }
 
