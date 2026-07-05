@@ -5,6 +5,7 @@ import { URL } from "url";
 import {
     googleMaps,
     googleMapsHeadless,
+    googleMapsOsmFallback,
     googleMapsFilter,
     googleMapsSummary,
 } from "../src/others/google-maps";
@@ -69,6 +70,7 @@ const server = http.createServer(async (req, res) => {
 
         try {
             let results: Awaited<ReturnType<typeof googleMaps>>;
+            let warning = "";
             try {
                 results = await withTimeout(
                     googleMapsHeadless(keyword, location, { limit }),
@@ -85,17 +87,31 @@ const server = http.createServer(async (req, res) => {
                         "Pencarian HTTP"
                     );
                 } catch (httpErr: any) {
-                    throw new Error(
-                        `Mode headless browser gagal: ${headlessMsg}\n` +
-                            `Mode HTTP biasa (fallback) juga gagal: ${httpErr.message || httpErr}`
-                    );
+                    const httpMsg = httpErr.message || String(httpErr);
+                    console.warn(`  [HTTP gagal] ${httpMsg} — mencoba fallback OpenStreetMap...`);
+                    try {
+                        results = await withTimeout(
+                            googleMapsOsmFallback(keyword, location, { limit }),
+                            SEARCH_TIMEOUT_MS,
+                            "Pencarian OpenStreetMap"
+                        );
+                        warning =
+                            "Google Maps sedang tidak bisa diakses, hasil ini berasal dari OpenStreetMap " +
+                            "(tidak ada data rating/jumlah review, dan kelengkapan data bisa lebih terbatas).";
+                    } catch (osmErr: any) {
+                        throw new Error(
+                            `Mode headless browser gagal: ${headlessMsg}\n` +
+                                `Mode HTTP biasa gagal: ${httpMsg}\n` +
+                                `Fallback OpenStreetMap juga gagal: ${osmErr.message || osmErr}`
+                        );
+                    }
                 }
             }
             if (minRating > 0 || hasPhone) {
                 results = googleMapsFilter(results, { minRating, hasPhone });
             }
             const summary = googleMapsSummary(results);
-            return sendJson(res, 200, { results, summary });
+            return sendJson(res, 200, { results, summary, warning: warning || undefined });
         } catch (err: any) {
             return sendJson(res, 500, { error: err.message || "Terjadi kesalahan." });
         }

@@ -300,11 +300,21 @@ export async function googleMapsHeadless(
 
     let puppeteer: any;
     try {
-        puppeteer = require("puppeteer");
+        // puppeteer-extra + stealth plugin menyamarkan jejak automation
+        // (navigator.webdriver, dll) supaya lebih kecil kemungkinan Google
+        // memaksa halaman consent/captcha. Fallback ke puppeteer biasa
+        // kalau paket tambahan ini belum terinstal.
+        puppeteer = require("puppeteer-extra");
+        const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+        puppeteer.use(StealthPlugin());
     } catch {
-        throw new ScraperError(
-            "Paket 'puppeteer' belum terinstal. Jalankan: npm install puppeteer"
-        );
+        try {
+            puppeteer = require("puppeteer");
+        } catch {
+            throw new ScraperError(
+                "Paket 'puppeteer' belum terinstal. Jalankan: npm install puppeteer"
+            );
+        }
     }
 
     const query = `${keyword} di ${location}`;
@@ -425,6 +435,59 @@ export async function googleMapsHeadless(
     } finally {
         await browser.close();
     }
+}
+
+/**
+ * Fallback gratis 100% memakai OpenStreetMap (Nominatim API) ketika kedua
+ * mode Google (headless & HTTP) gagal karena diblokir. Tidak pernah kena
+ * captcha/consent karena ini API resmi, bukan scraping. Keterbatasan:
+ * tidak ada data rating/jumlah review (OSM tidak punya konsep itu), dan
+ * kelengkapan alamat/telepon/website tergantung kontribusi data OSM di
+ * lokasi tersebut (biasanya lebih tipis dibanding Google Maps).
+ */
+export async function googleMapsOsmFallback(
+    keyword: string,
+    location: string,
+    options: GoogleMapsOptions = {}
+): Promise<GoogleMapsResult[]> {
+    const { limit = 20 } = options;
+    const query = `${keyword} ${location}`;
+
+    const rows = await got("https://nominatim.openstreetmap.org/search", {
+        searchParams: {
+            q: query,
+            format: "json",
+            addressdetails: 1,
+            extratags: 1,
+            limit: String(Math.min(limit, 50)),
+        },
+        headers: {
+            "user-agent": "MapsBiz-Scraper/1.0 (personal use; contact: -)",
+            "accept-language": "id-ID,id;q=0.9",
+        },
+    }).json<any[]>();
+
+    if (!rows || rows.length === 0) {
+        throw new ScraperError(
+            `Tidak ditemukan hasil di OpenStreetMap untuk "${keyword}" di "${location}". Coba kata kunci lain.`
+        );
+    }
+
+    return rows.map((item) => {
+        const extratags = item.extratags || {};
+        const name = (item.namedetails && item.namedetails.name) || item.display_name.split(",")[0];
+        return {
+            name,
+            rating: 0,
+            reviews: 0,
+            category: item.type || item.class || "",
+            address: item.display_name || "",
+            phone: extratags.phone || extratags["contact:phone"] || "",
+            website: extratags.website || extratags["contact:website"] || "",
+            mapsUrl: `https://www.openstreetmap.org/${item.osm_type}/${item.osm_id}`,
+            location,
+        };
+    });
 }
 
 export function googleMapsExport(
