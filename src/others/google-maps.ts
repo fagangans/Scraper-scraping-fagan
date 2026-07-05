@@ -352,6 +352,32 @@ export async function googleMapsHeadless(
         // beri waktu tambahan dan tunggu jika masih ada redirect lanjutan.
         await page.waitForNetworkIdle({ idleTime: 800, timeout: 15000 }).catch(() => {});
 
+        // Cookie CONSENT saja kadang tidak cukup (mis. dari IP data center),
+        // Google tetap menampilkan halaman persetujuan interaktif. Coba klik
+        // tombol "Accept all/Terima semua/I agree" secara otomatis kalau muncul.
+        if (/consent\.google\.com/i.test(page.url())) {
+            const clicked = await page.evaluate(() => {
+                const texts = ["accept all", "i agree", "terima semua", "setuju"];
+                const candidates = Array.from(
+                    document.querySelectorAll("button, div[role='button']")
+                ) as HTMLElement[];
+                for (const el of candidates) {
+                    const t = (el.innerText || "").trim().toLowerCase();
+                    if (texts.some((needle) => t === needle || t.includes(needle))) {
+                        el.click();
+                        return true;
+                    }
+                }
+                return false;
+            });
+            if (clicked) {
+                await page
+                    .waitForNavigation({ waitUntil: "networkidle2", timeout: 15000 })
+                    .catch(() => {});
+                await page.waitForNetworkIdle({ idleTime: 800, timeout: 15000 }).catch(() => {});
+            }
+        }
+
         const html = await page.content();
         debugDumpHtml(html, "headless");
 
