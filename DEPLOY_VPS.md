@@ -9,8 +9,14 @@ sudo apt-get update
 sudo apt-get install -y \
   libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 \
   libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2 \
-  libpango-1.0-0 libpangocairo-1.0-0 libcairo2 fonts-liberation
+  libpango-1.0-0 libpangocairo-1.0-0 libcairo2 fonts-liberation xvfb
 ```
+
+Paket `xvfb` (virtual display) opsional tapi direkomendasikan — kalau ada,
+scraper otomatis menjalankan Chrome dalam mode non-headless di dalam
+display virtual (lebih sulit dideteksi sebagai bot dibanding mode headless
+biasa). Kalau `xvfb` tidak diinstal, scraper tetap jalan pakai mode
+headless standar, cuma sedikit lebih mudah terdeteksi.
 
 Pastikan Node.js versi 18+ terinstal (`node -v`).
 

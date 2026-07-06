@@ -291,6 +291,75 @@ export async function googleMapsv2(
  * memblokir request HTTP biasa (got/fetch). Hanya untuk pemakaian lokal —
  * tidak cocok dijalankan di Vercel serverless (ukuran Chromium terlalu besar).
  */
+function delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function randomDelay(minMs: number, maxMs: number): Promise<void> {
+    return delay(minMs + Math.random() * (maxMs - minMs));
+}
+
+// Kelas CSS di bawah ini adalah selector feed hasil Google Maps
+// (maps.google.com/maps/search) yang umum dipakai komunitas scraping.
+// Sama seperti selector lain di file ini, Google bisa mengubahnya
+// kapan saja tanpa pemberitahuan — kalau parser ini berhenti bekerja,
+// jalankan dengan DEBUG_GMAPS=1 dan kirim HTML "maps-feed" untuk
+// diperiksa ulang selectornya.
+function parseMapsFeed($: cheerio.CheerioAPI, location: string, limit: number): GoogleMapsResult[] {
+    const results: GoogleMapsResult[] = [];
+
+    $("div[role='feed'] > div").each(function () {
+        if (results.length >= limit) return false;
+        const el = $(this);
+
+        const name =
+            el.find("div.qBF1Pd").first().text().trim() ||
+            el.find("a[aria-label]").first().attr("aria-label") ||
+            "";
+        if (!name) return;
+
+        const rating = parseRating(el.find("span.MW4etd").first().text().trim());
+        const reviews = parseReviewCount(el.find("span.UY7F9").first().text().trim());
+
+        const detailTexts = el
+            .find("div.W4Efsd span")
+            .map((_, s) => $(s).text().trim())
+            .get()
+            .filter(Boolean);
+
+        const category = detailTexts.find((t) => t.length < 30 && !/\d/.test(t)) || "";
+        const address = detailTexts.find((t) => t.length > 10 && /\d/.test(t)) || "";
+        const phone = extractPhone(el.text());
+        const mapsLink = el.find("a[href*='/maps/place']").first().attr("href") || "";
+
+        results.push({
+            name,
+            rating,
+            reviews,
+            category,
+            address,
+            phone,
+            website: "",
+            mapsUrl: mapsLink || "",
+            location,
+        });
+    });
+
+    return results;
+}
+
+async function scrollMapsFeed(page: any, rounds: number): Promise<void> {
+    for (let i = 0; i < rounds; i++) {
+        await page
+            .evaluate(() => {
+                const feed = document.querySelector("div[role='feed']");
+                if (feed) feed.scrollTop = feed.scrollHeight;
+            })
+            .catch(() => {});
+        await randomDelay(700, 1200);
+    }
+}
+
 export async function googleMapsHeadless(
     keyword: string,
     location: string,
@@ -320,10 +389,30 @@ export async function googleMapsHeadless(
     const query = `${keyword} di ${location}`;
     const url = `https://www.google.com/search?q=${encodeURIComponent(query)}&tbm=lcl&hl=${language}&gl=id`;
 
+    // Mode headless klasik (headless:true) punya beberapa fingerprint yang
+    // berbeda dari Chrome biasa walau sudah pakai stealth plugin. Kalau
+    // paket 'xvfb' (virtual display) tersedia, jalankan Chrome dalam mode
+    // headless:false di dalam display virtual — jauh lebih sulit dibedakan
+    // dari Chrome yang dipakai manusia. Kalau tidak ada, tetap pakai
+    // headless:true seperti biasa (tidak fatal, cuma kurang optimal).
+    let xvfb: any = null;
+    let useHeadless = true;
+    try {
+        const Xvfb = require("xvfb");
+        xvfb = new Xvfb({ silent: true, xvfb_args: ["-screen", "0", "1280x800x24", "-ac"] });
+        await new Promise<void>((resolve, reject) => {
+            xvfb.start((err: any) => (err ? reject(err) : resolve()));
+        });
+        useHeadless = false;
+    } catch {
+        xvfb = null;
+        useHeadless = true;
+    }
+
     let browser: any;
     try {
         browser = await puppeteer.launch({
-            headless: true,
+            headless: useHeadless,
             executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
             args: [
                 "--no-sandbox",
@@ -335,6 +424,9 @@ export async function googleMapsHeadless(
             timeout: 30000,
         });
     } catch (launchErr: any) {
+        if (xvfb) {
+            await new Promise<void>((resolve) => xvfb.stop(() => resolve())).catch(() => {});
+        }
         const msg = String((launchErr && launchErr.message) || launchErr);
         if (/libnss3|libatk|libgbm|error while loading shared libraries|shared object file|Failed to launch/i.test(msg)) {
             throw new ScraperError(
@@ -356,6 +448,24 @@ export async function googleMapsHeadless(
             { name: "CONSENT", value: "YES+cb.20240101-00-p0.id+FX+000", domain: ".google.com" },
             { name: "SOCS", value: "CAESEwgDEgk0ODE3Nzk3MjQaAmVuIAEaBgiA_LyaBg", domain: ".google.com" }
         );
+
+        // "Pemanasan" sesi: buka beranda Google dan ketik query seperti
+        // manusia (bukan langsung tembak URL pencarian), supaya sesi
+        // browser punya histori navigasi wajar sebelum menyentuh endpoint
+        // pencarian lokal. Kegagalan langkah ini tidak fatal — kalau ada
+        // apa pun yang meleset, tetap lanjut ke pencarian langsung.
+        try {
+            await page.goto("https://www.google.com/", { waitUntil: "networkidle2", timeout: 20000 });
+            await randomDelay(500, 1200);
+            const searchBox = await page.$("input[name='q'], textarea[name='q']");
+            if (searchBox) {
+                await searchBox.click();
+                await page.type("input[name='q'], textarea[name='q']", query, { delay: 60 });
+                await randomDelay(300, 800);
+            }
+        } catch {
+            /* abaikan, lanjut ke pencarian langsung */
+        }
 
         await page.goto(url, { waitUntil: "networkidle2", timeout: 30000 });
         // Halaman challenge "enablejs" mengalihkan otomatis setelah JS jalan;
@@ -423,6 +533,26 @@ export async function googleMapsHeadless(
             results = parseFallback($, location, limit);
         }
 
+        // Kalau endpoint pencarian lokal tetap kosong, coba tingkat ketiga:
+        // buka antarmuka Google Maps langsung (bukan google.com/search).
+        // Ini kadang punya jalur deteksi bot berbeda dari halaman pencarian.
+        if (results.length === 0) {
+            try {
+                const mapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(query)}?hl=${language}`;
+                await page.goto(mapsUrl, { waitUntil: "networkidle2", timeout: 30000 });
+                await page.waitForSelector("div[role='feed']", { timeout: 12000 }).catch(() => {});
+                await scrollMapsFeed(page, 4);
+
+                const mapsHtml = await page.content();
+                debugDumpHtml(mapsHtml, "maps-feed");
+
+                const $maps = cheerio.load(mapsHtml);
+                results = parseMapsFeed($maps, location, limit);
+            } catch {
+                /* abaikan, tetap lanjut ke penanganan hasil kosong di bawah */
+            }
+        }
+
         if (results.length === 0) {
             const reason = detectBlockReason(html);
             throw new ScraperError(
@@ -434,6 +564,9 @@ export async function googleMapsHeadless(
         return results;
     } finally {
         await browser.close();
+        if (xvfb) {
+            await new Promise<void>((resolve) => xvfb.stop(() => resolve())).catch(() => {});
+        }
     }
 }
 

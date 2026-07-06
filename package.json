@@ -51,6 +51,7 @@
     "ws": "^8.4.2",
     "puppeteer": "^23.0.0",
     "puppeteer-extra": "^3.3.6",
-    "puppeteer-extra-plugin-stealth": "^2.11.2"
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "xvfb": "^0.4.0"
   }
 }
