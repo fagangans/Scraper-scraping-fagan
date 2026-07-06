@@ -38,6 +38,29 @@ function isRateLimited(ip: string): boolean {
     return timestamps.length > RATE_LIMIT_MAX_REQUESTS;
 }
 
+// Log audit sederhana ke file (siapa mencari apa, kapan, hasil berapa/error
+// apa) supaya ada jejak kalau nanti perlu investigasi penyalahgunaan.
+// Kegagalan tulis log tidak boleh pernah menggagalkan request itu sendiri.
+const ACCESS_LOG_PATH = path.join(__dirname, "access.log");
+function logSearchAccess(entry: {
+    ip: string;
+    keyword: string;
+    location: string;
+    status: number;
+    resultCount?: number;
+    errorSummary?: string;
+}): void {
+    try {
+        const line =
+            JSON.stringify({ time: new Date().toISOString(), ...entry }) + "\n";
+        fs.appendFile(ACCESS_LOG_PATH, line, () => {
+            /* abaikan kegagalan tulis log, jangan sampai mengganggu response */
+        });
+    } catch {
+        /* abaikan */
+    }
+}
+
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
     return Promise.race([
         promise,
@@ -97,11 +120,13 @@ const server = http.createServer(async (req, res) => {
 
         const clientIp = (req.socket && req.socket.remoteAddress) || "unknown";
         if (isRateLimited(clientIp)) {
+            logSearchAccess({ ip: clientIp, keyword, location, status: 429, errorSummary: "rate-limited" });
             return sendJson(res, 429, {
                 error: `Terlalu banyak permintaan. Maksimal ${RATE_LIMIT_MAX_REQUESTS} pencarian per 5 menit, coba lagi sebentar lagi.`,
             });
         }
         if (activeSearches >= MAX_CONCURRENT_SEARCHES) {
+            logSearchAccess({ ip: clientIp, keyword, location, status: 429, errorSummary: "concurrency-limited" });
             return sendJson(res, 429, {
                 error: "Server sedang memproses pencarian lain, coba lagi dalam beberapa detik.",
             });
@@ -151,10 +176,12 @@ const server = http.createServer(async (req, res) => {
                 results = googleMapsFilter(results, { minRating, hasPhone });
             }
             const summary = googleMapsSummary(results);
+            logSearchAccess({ ip: clientIp, keyword, location, status: 200, resultCount: results.length });
             return sendJson(res, 200, { results, summary, warning: warning || undefined });
         } catch (err: any) {
             const detail = err.message || String(err);
             console.error(`  [/api/search error] ${detail}`);
+            logSearchAccess({ ip: clientIp, keyword, location, status: 500, errorSummary: detail });
             return sendJson(res, 500, {
                 error: EXPOSE_ERROR_DETAILS ? detail : "Pencarian gagal. Coba lagi dalam beberapa saat.",
             });
