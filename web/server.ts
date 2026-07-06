@@ -12,7 +12,31 @@ import {
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 const PUBLIC_DIR = path.join(__dirname, "public");
-const SEARCH_TIMEOUT_MS = 60000;
+// Dinaikkan dari 60s karena sekarang ada langkah tambahan (warm-up +
+// enrichment nomor telepon lewat halaman detail) yang butuh waktu lebih.
+const SEARCH_TIMEOUT_MS = 120000;
+// Set EXPOSE_ERROR_DETAILS=0 di production/publik supaya client cuma
+// dapat pesan generik (detail lengkap tetap dicatat di log server).
+const EXPOSE_ERROR_DETAILS = process.env.EXPOSE_ERROR_DETAILS !== "0";
+
+// --- Rate limit & concurrency guard sederhana untuk /api/search ---
+// Setiap request Puppeteer membuka Chrome penuh (berat di CPU/RAM).
+// Tanpa batas, beberapa request bersamaan bisa menghabiskan memori
+// server (pernah terjadi saat pengujian). Batas ini generous untuk
+// pemakaian normal, cuma menahan penyalahgunaan/serangan.
+const MAX_CONCURRENT_SEARCHES = 2;
+const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
+const RATE_LIMIT_MAX_REQUESTS = 15;
+let activeSearches = 0;
+const requestLog = new Map<string, number[]>();
+
+function isRateLimited(ip: string): boolean {
+    const now = Date.now();
+    const timestamps = (requestLog.get(ip) || []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+    timestamps.push(now);
+    requestLog.set(ip, timestamps);
+    return timestamps.length > RATE_LIMIT_MAX_REQUESTS;
+}
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
     return Promise.race([
@@ -39,7 +63,10 @@ function serveStatic(req: http.IncomingMessage, res: http.ServerResponse): boole
         PUBLIC_DIR,
         urlPath === "/" ? "index.html" : urlPath
     );
-    if (!filePath.startsWith(PUBLIC_DIR)) return false;
+    // Cek batas direktori pakai path.sep, bukan cuma startsWith string —
+    // startsWith(PUBLIC_DIR) saja bisa salah anggap folder sibling
+    // (mis. "public-lain") sebagai bagian dari PUBLIC_DIR.
+    if (filePath !== PUBLIC_DIR && !filePath.startsWith(PUBLIC_DIR + path.sep)) return false;
     if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) return false;
     const ext = path.extname(filePath).toLowerCase();
     res.writeHead(200, { "content-type": MIME[ext] || "application/octet-stream" });
@@ -67,6 +94,19 @@ const server = http.createServer(async (req, res) => {
                 error: "Parameter 'keyword' dan 'location' wajib diisi.",
             });
         }
+
+        const clientIp = (req.socket && req.socket.remoteAddress) || "unknown";
+        if (isRateLimited(clientIp)) {
+            return sendJson(res, 429, {
+                error: `Terlalu banyak permintaan. Maksimal ${RATE_LIMIT_MAX_REQUESTS} pencarian per 5 menit, coba lagi sebentar lagi.`,
+            });
+        }
+        if (activeSearches >= MAX_CONCURRENT_SEARCHES) {
+            return sendJson(res, 429, {
+                error: "Server sedang memproses pencarian lain, coba lagi dalam beberapa detik.",
+            });
+        }
+        activeSearches++;
 
         try {
             let results: Awaited<ReturnType<typeof googleMaps>>;
@@ -113,7 +153,13 @@ const server = http.createServer(async (req, res) => {
             const summary = googleMapsSummary(results);
             return sendJson(res, 200, { results, summary, warning: warning || undefined });
         } catch (err: any) {
-            return sendJson(res, 500, { error: err.message || "Terjadi kesalahan." });
+            const detail = err.message || String(err);
+            console.error(`  [/api/search error] ${detail}`);
+            return sendJson(res, 500, {
+                error: EXPOSE_ERROR_DETAILS ? detail : "Pencarian gagal. Coba lagi dalam beberapa saat.",
+            });
+        } finally {
+            activeSearches--;
         }
     }
 

@@ -561,12 +561,53 @@ export async function googleMapsHeadless(
             );
         }
 
+        // Ringkasan hasil pencarian Google sering tidak menampilkan nomor
+        // telepon sama sekali (baru muncul di halaman detail tempat).
+        // Best-effort: kunjungi halaman detail (mapsUrl) untuk sebagian
+        // hasil yang belum punya nomor telepon, ambil dari link "tel:".
+        // Dibatasi jumlahnya dan dibungkus try/catch penuh supaya kalau
+        // gagal (timeout, selector berubah, dll) TIDAK menggagalkan hasil
+        // pencarian yang sudah didapat — hasil tanpa telepon tetap dikembalikan.
+        try {
+            await enrichPhoneNumbers(page, results, 8);
+        } catch {
+            /* abaikan sepenuhnya, hasil pencarian tetap dikembalikan apa adanya */
+        }
+
         return results;
     } finally {
         await browser.close();
         if (xvfb) {
             await new Promise<void>((resolve) => xvfb.stop(() => resolve())).catch(() => {});
         }
+    }
+}
+
+async function enrichPhoneNumbers(
+    page: any,
+    results: GoogleMapsResult[],
+    maxToEnrich: number
+): Promise<void> {
+    let enriched = 0;
+    for (const r of results) {
+        if (enriched >= maxToEnrich) break;
+        if (r.phone || !r.mapsUrl) continue;
+        try {
+            await page.goto(r.mapsUrl, { waitUntil: "domcontentloaded", timeout: 8000 });
+            await page.waitForSelector("a[href^='tel:']", { timeout: 4000 }).catch(() => {});
+            const tel: string | null = await page
+                .evaluate(() => {
+                    const el = document.querySelector("a[href^='tel:']");
+                    return el ? el.getAttribute("href") : null;
+                })
+                .catch(() => null);
+            if (tel) {
+                r.phone = decodeURIComponent(tel.replace(/^tel:/, "")).trim();
+            }
+        } catch {
+            /* lewati hasil ini, lanjut ke hasil berikutnya */
+        }
+        enriched++;
     }
 }
 

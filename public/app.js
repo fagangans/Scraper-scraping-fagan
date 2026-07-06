@@ -294,11 +294,11 @@
                     <a href="tel:${encodeURIComponent(r.phone)}" class="hover:text-primary transition-colors cursor-pointer">${escapeHtml(r.phone)}</a>
                 </p>` : ""}
                 <div class="mt-auto pt-3 flex flex-wrap gap-2 text-xs">
-                    ${r.website ? `<a href="${escapeAttr(r.website)}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer">
+                    ${safeUrl(r.website) ? `<a href="${escapeAttr(safeUrl(r.website))}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer">
                         <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                         Website
                     </a>` : ""}
-                    ${r.mapsUrl ? `<a href="${escapeAttr(r.mapsUrl)}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-50 hover:bg-blue-100 text-primary transition-colors cursor-pointer">
+                    ${safeUrl(r.mapsUrl) ? `<a href="${escapeAttr(safeUrl(r.mapsUrl))}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-50 hover:bg-blue-100 text-primary transition-colors cursor-pointer">
                         <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                         Google Maps
                     </a>` : ""}
@@ -354,5 +354,23 @@
     }
     function escapeAttr(str) {
         return escapeHtml(str);
+    }
+
+    // Data website/mapsUrl berasal dari hasil scraping (termasuk OpenStreetMap
+    // yang bisa diedit siapa saja) — HTML-escape saja tidak cukup untuk
+    // mencegah skema berbahaya seperti "javascript:" dipakai di href. Hanya
+    // izinkan http/https, selain itu link dianggap tidak valid.
+    function safeUrl(str) {
+        const value = String(str || "").trim();
+        if (!value) return "";
+        try {
+            const parsed = new URL(value, window.location.href);
+            if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+                return value;
+            }
+        } catch {
+            return "";
+        }
+        return "";
     }
 })();
