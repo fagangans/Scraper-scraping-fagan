@@ -138,7 +138,7 @@
             doc.setFont("helvetica", "bold");
             doc.setFontSize(16);
             doc.setTextColor(180, 83, 9);
-            doc.text("Faiscraper - Data Bisnis", 14, 15);
+            doc.text("FaiScrap - Data Bisnis", 14, 15);
 
             doc.setFont("helvetica", "normal");
             doc.setFontSize(10);

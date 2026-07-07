@@ -201,7 +201,7 @@ server.on("error", (err: NodeJS.ErrnoException) => {
         const next = PORT + 1;
         console.log(`  Port ${PORT} sudah dipakai, mencoba port ${next}...`);
         server.listen(next, () => {
-            console.log(`\n  Faiscraper running at http://localhost:${next}\n`);
+            console.log(`\n  FaiScrap running at http://localhost:${next}\n`);
         });
     } else {
         throw err;
@@ -209,5 +209,5 @@ server.on("error", (err: NodeJS.ErrnoException) => {
 });
 
 server.listen(PORT, () => {
-    console.log(`\n  Faiscraper running at http://localhost:${PORT}\n`);
+    console.log(`\n  FaiScrap running at http://localhost:${PORT}\n`);
 });

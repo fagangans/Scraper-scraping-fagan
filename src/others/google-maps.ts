@@ -636,7 +636,7 @@ export async function googleMapsOsmFallback(
             limit: String(Math.min(limit, 50)),
         },
         headers: {
-            "user-agent": "Faiscraper/1.0 (personal use; contact: -)",
+            "user-agent": "FaiScrap/1.0 (personal use; contact: -)",
             "accept-language": "id-ID,id;q=0.9",
         },
     }).json<any[]>();
