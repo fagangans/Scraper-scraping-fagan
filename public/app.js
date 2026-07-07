@@ -137,8 +137,8 @@
         try {
             doc.setFont("helvetica", "bold");
             doc.setFontSize(16);
-            doc.setTextColor(30, 64, 175);
-            doc.text("MapsBiz Scraper - Data Bisnis", 14, 15);
+            doc.setTextColor(180, 83, 9);
+            doc.text("Faiscraper - Data Bisnis", 14, 15);
 
             doc.setFont("helvetica", "normal");
             doc.setFontSize(10);
@@ -161,7 +161,7 @@
                 startY: 28,
                 theme: "grid",
                 headStyles: {
-                    fillColor: [30, 64, 175],
+                    fillColor: [180, 83, 9],
                     textColor: 255,
                     fontStyle: "bold",
                     fontSize: 9,
@@ -172,7 +172,7 @@
                     textColor: [30, 41, 59],
                 },
                 alternateRowStyles: {
-                    fillColor: [248, 250, 252],
+                    fillColor: [255, 251, 235],
                 },
                 columnStyles: {
                     0: { halign: "center", cellWidth: 12 },
@@ -276,7 +276,7 @@
                 : `<div class="text-xs text-slate-400">Belum ada rating</div>`;
 
             const category = r.category
-                ? `<span class="inline-block text-xs font-medium text-primary bg-blue-50 rounded-full px-2 py-0.5">${escapeHtml(r.category)}</span>`
+                ? `<span class="inline-block text-xs font-medium text-primary bg-amber-50 rounded-full px-2 py-0.5">${escapeHtml(r.category)}</span>`
                 : "";
 
             card.innerHTML = `
@@ -298,7 +298,7 @@
                         <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                         Website
                     </a>` : ""}
-                    ${safeUrl(r.mapsUrl) ? `<a href="${escapeAttr(safeUrl(r.mapsUrl))}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-50 hover:bg-blue-100 text-primary transition-colors cursor-pointer">
+                    ${safeUrl(r.mapsUrl) ? `<a href="${escapeAttr(safeUrl(r.mapsUrl))}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-50 hover:bg-amber-100 text-primary transition-colors cursor-pointer">
                         <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                         Google Maps
                     </a>` : ""}
@@ -333,7 +333,7 @@
     function showStatus(type, message) {
         const classes = {
             error: "bg-red-50 border-red-200 text-red-700",
-            info: "bg-blue-50 border-blue-200 text-blue-700",
+            info: "bg-amber-50 border-amber-200 text-amber-800",
         };
         statusEl.className = `border rounded-lg px-4 py-3 text-sm ${classes[type] || classes.info}`;
         statusEl.textContent = message;
