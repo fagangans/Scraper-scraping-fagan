@@ -31,10 +31,10 @@
     </script>
     <link rel="stylesheet" href="/styles.css" />
 </head>
-<body class="font-body bg-canvas text-slate-900 antialiased min-h-screen">
+<body class="font-body text-slate-900 antialiased min-h-screen">
 
     <!-- Navbar -->
-    <header class="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-slate-200">
+    <header class="sticky top-0 z-30 glass-strong shadow-sm">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
             <a href="/" class="flex items-center gap-2 cursor-pointer">
                 <svg class="w-7 h-7 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -47,19 +47,19 @@
     </header>
 
     <!-- Hero / Search Section -->
-    <section class="bg-gradient-to-br from-primary to-secondary text-white">
+    <section>
         <div class="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
             <div class="text-center max-w-3xl mx-auto">
-                <h1 class="font-heading text-3xl sm:text-4xl lg:text-5xl font-semibold leading-tight">
+                <h1 class="font-heading text-3xl sm:text-4xl lg:text-5xl font-semibold leading-tight text-ink">
                     Cari Data Bisnis di Seluruh Indonesia
                 </h1>
-                <p class="mt-4 text-amber-100 text-base sm:text-lg leading-relaxed">
+                <p class="mt-4 text-amber-900/70 text-base sm:text-lg leading-relaxed">
                     Kumpulkan nama, alamat, telepon, rating &amp; website dari ribuan usaha di Google Maps — tinggal ketik kata kunci dan kotanya.
                 </p>
             </div>
 
             <!-- Search form -->
-            <form id="searchForm" class="mt-8 bg-white rounded-2xl shadow-xl p-4 sm:p-5 max-w-4xl mx-auto" autocomplete="off">
+            <form id="searchForm" class="mt-8 glass-strong rounded-3xl shadow-xl p-4 sm:p-6 max-w-4xl mx-auto" autocomplete="off">
                 <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
                     <div class="sm:col-span-5">
                         <label for="keyword" class="block text-xs font-semibold text-slate-700 mb-1">Jenis Usaha</label>
@@ -70,7 +70,7 @@
                                 </svg>
                             </span>
                             <input id="keyword" name="keyword" type="text" required placeholder="restoran, hotel, bengkel..."
-                                class="w-full pl-10 pr-3 py-3 rounded-lg border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors" />
+                                class="w-full pl-10 pr-3 py-3 rounded-2xl glass-subtle text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors" />
                         </div>
                     </div>
                     <div class="sm:col-span-4">
@@ -82,12 +82,12 @@
                                 </svg>
                             </span>
                             <input id="location" name="location" type="text" required placeholder="palembang, jakarta..."
-                                class="w-full pl-10 pr-3 py-3 rounded-lg border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors" />
+                                class="w-full pl-10 pr-3 py-3 rounded-2xl glass-subtle text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors" />
                         </div>
                     </div>
                     <div class="sm:col-span-3 flex items-end">
                         <button type="submit" id="searchBtn"
-                            class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-cta hover:bg-ctaHover text-white font-semibold transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-cta focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed">
+                            class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-gradient-to-b from-cta to-ctaHover hover:brightness-105 text-white font-semibold shadow-lg shadow-amber-900/20 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-cta focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed">
                             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                 <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                             </svg>
@@ -97,10 +97,10 @@
                 </div>
 
                 <!-- Filters -->
-                <div class="mt-4 pt-4 border-t border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                <div class="mt-4 pt-4 border-t border-white/50 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                     <label class="flex flex-col">
                         <span class="text-xs font-semibold text-slate-700 mb-1">Jumlah Hasil</span>
-                        <select id="limit" class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer">
+                        <select id="limit" class="px-3 py-2 rounded-2xl border border-white/70 bg-white/70 backdrop-blur text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer">
                             <option value="10" class="text-slate-900 bg-white">10</option>
                             <option value="20" selected class="text-slate-900 bg-white">20</option>
                             <option value="30" class="text-slate-900 bg-white">30</option>
@@ -109,7 +109,7 @@
                     </label>
                     <label class="flex flex-col">
                         <span class="text-xs font-semibold text-slate-700 mb-1">Min. Rating</span>
-                        <select id="minRating" class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer">
+                        <select id="minRating" class="px-3 py-2 rounded-2xl border border-white/70 bg-white/70 backdrop-blur text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer">
                             <option value="0" class="text-slate-900 bg-white">Semua</option>
                             <option value="3" class="text-slate-900 bg-white">3.0 ke atas</option>
                             <option value="4" class="text-slate-900 bg-white">4.0 ke atas</option>
@@ -117,22 +117,22 @@
                         </select>
                     </label>
                     <label class="flex items-end gap-2 sm:col-span-2">
-                        <input id="hasPhone" type="checkbox" class="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer" />
+                        <input id="hasPhone" type="checkbox" class="w-4 h-4 rounded border-slate-400 text-primary focus:ring-primary cursor-pointer" />
                         <span class="text-sm text-slate-700">Hanya yang punya nomor telepon</span>
                     </label>
                 </div>
 
                 <!-- Popular suggestions -->
                 <div class="mt-4 flex flex-wrap gap-2">
-                    <span class="text-xs text-slate-500 self-center">Populer:</span>
+                    <span class="text-xs text-slate-600 self-center">Populer:</span>
                     <button type="button" data-suggest='{"keyword":"restoran","location":"palembang"}'
-                        class="suggest-chip text-xs px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer">Restoran Palembang</button>
+                        class="suggest-chip text-xs px-3 py-1 rounded-full glass-subtle hover:bg-white/60 text-slate-700 transition-colors cursor-pointer">Restoran Palembang</button>
                     <button type="button" data-suggest='{"keyword":"hotel","location":"jakarta"}'
-                        class="suggest-chip text-xs px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer">Hotel Jakarta</button>
+                        class="suggest-chip text-xs px-3 py-1 rounded-full glass-subtle hover:bg-white/60 text-slate-700 transition-colors cursor-pointer">Hotel Jakarta</button>
                     <button type="button" data-suggest='{"keyword":"cafe","location":"bandung"}'
-                        class="suggest-chip text-xs px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer">Cafe Bandung</button>
+                        class="suggest-chip text-xs px-3 py-1 rounded-full glass-subtle hover:bg-white/60 text-slate-700 transition-colors cursor-pointer">Cafe Bandung</button>
                     <button type="button" data-suggest='{"keyword":"bengkel mobil","location":"surabaya"}'
-                        class="suggest-chip text-xs px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer">Bengkel Surabaya</button>
+                        class="suggest-chip text-xs px-3 py-1 rounded-full glass-subtle hover:bg-white/60 text-slate-700 transition-colors cursor-pointer">Bengkel Surabaya</button>
                 </div>
             </form>
         </div>
@@ -148,20 +148,20 @@
         <section id="summarySection" class="hidden mb-8">
             <h2 class="font-heading text-lg font-semibold text-ink mb-3">Ringkasan</h2>
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div class="bg-white border border-slate-200 rounded-xl p-4">
-                    <div class="text-xs text-slate-500">Total Bisnis</div>
+                <div class="glass rounded-2xl p-4">
+                    <div class="text-xs text-slate-600">Total Bisnis</div>
                     <div id="sumTotal" class="font-heading text-2xl font-semibold text-ink mt-1">0</div>
                 </div>
-                <div class="bg-white border border-slate-200 rounded-xl p-4">
-                    <div class="text-xs text-slate-500">Rata-rata Rating</div>
+                <div class="glass rounded-2xl p-4">
+                    <div class="text-xs text-slate-600">Rata-rata Rating</div>
                     <div id="sumAvgRating" class="font-heading text-2xl font-semibold text-ink mt-1">0</div>
                 </div>
-                <div class="bg-white border border-slate-200 rounded-xl p-4">
-                    <div class="text-xs text-slate-500">Punya Telepon</div>
+                <div class="glass rounded-2xl p-4">
+                    <div class="text-xs text-slate-600">Punya Telepon</div>
                     <div id="sumPhone" class="font-heading text-2xl font-semibold text-ink mt-1">0</div>
                 </div>
-                <div class="bg-white border border-slate-200 rounded-xl p-4">
-                    <div class="text-xs text-slate-500">Punya Website</div>
+                <div class="glass rounded-2xl p-4">
+                    <div class="text-xs text-slate-600">Punya Website</div>
                     <div id="sumWebsite" class="font-heading text-2xl font-semibold text-ink mt-1">0</div>
                 </div>
             </div>
@@ -171,7 +171,7 @@
         <div id="resultsHeader" class="hidden flex flex-wrap items-center justify-between gap-3 mb-4">
             <h2 class="font-heading text-lg font-semibold text-ink">Hasil Pencarian</h2>
             <div class="flex gap-2">
-                <button id="exportJson" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-slate-300 hover:border-primary hover:text-primary text-sm text-slate-700 transition-colors cursor-pointer">
+                <button id="exportJson" class="inline-flex items-center gap-2 px-3 py-2 rounded-full glass hover:bg-white/70 hover:text-primary text-sm text-slate-700 transition-colors cursor-pointer">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                         <polyline points="7 10 12 15 17 10" />
@@ -179,7 +179,7 @@
                     </svg>
                     Export JSON
                 </button>
-                <button id="exportCsv" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-slate-300 hover:border-primary hover:text-primary text-sm text-slate-700 transition-colors cursor-pointer">
+                <button id="exportCsv" class="inline-flex items-center gap-2 px-3 py-2 rounded-full glass hover:bg-white/70 hover:text-primary text-sm text-slate-700 transition-colors cursor-pointer">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                         <polyline points="7 10 12 15 17 10" />
@@ -187,7 +187,7 @@
                     </svg>
                     Export CSV
                 </button>
-                <button id="exportPdf" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary hover:bg-ink text-white text-sm font-semibold transition-colors cursor-pointer">
+                <button id="exportPdf" class="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-b from-primary to-ink hover:brightness-110 text-white text-sm font-semibold shadow-md shadow-amber-900/20 transition-all cursor-pointer">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                         <polyline points="14 2 14 8 20 8" />
@@ -205,17 +205,17 @@
 
         <!-- Empty state -->
         <div id="emptyState" class="text-center py-16">
-            <div class="w-16 h-16 mx-auto rounded-full bg-amber-50 flex items-center justify-center text-primary mb-4">
+            <div class="w-16 h-16 mx-auto rounded-full glass flex items-center justify-center text-primary mb-4">
                 <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                 </svg>
             </div>
             <h3 class="font-heading text-lg font-semibold text-ink">Mulai cari data bisnis</h3>
-            <p class="text-sm text-slate-500 mt-1">Masukkan jenis usaha dan kota, lalu klik <span class="text-cta font-semibold">Cari Sekarang</span>.</p>
+            <p class="text-sm text-slate-600 mt-1">Masukkan jenis usaha dan kota, lalu klik <span class="text-cta font-semibold">Cari Sekarang</span>.</p>
         </div>
     </main>
 
-    <footer class="border-t border-slate-200 mt-12">
+    <footer class="border-t border-white/50 mt-12">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 text-center text-xs text-slate-500">
             Data discrape dari hasil pencarian Google. Gunakan secara wajar &amp; bertanggung jawab.
         </div>

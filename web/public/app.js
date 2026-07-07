@@ -239,7 +239,7 @@
         const n = Math.min(Math.max(count, 3), 9);
         for (let i = 0; i < n; i++) {
             const card = document.createElement("div");
-            card.className = "bg-white border border-slate-200 rounded-xl p-4";
+            card.className = "glass rounded-2xl p-4";
             card.innerHTML = `
                 <div class="skeleton h-5 w-3/4 mb-3"></div>
                 <div class="skeleton h-3 w-1/2 mb-2"></div>
@@ -264,7 +264,7 @@
 
         results.forEach((r, i) => {
             const card = document.createElement("article");
-            card.className = "result-card bg-white border border-slate-200 rounded-xl p-4 flex flex-col";
+            card.className = "result-card glass rounded-2xl p-4 flex flex-col";
 
             const stars = renderStars(r.rating);
             const ratingLine = r.rating
@@ -294,11 +294,11 @@
                     <a href="tel:${encodeURIComponent(r.phone)}" class="hover:text-primary transition-colors cursor-pointer">${escapeHtml(r.phone)}</a>
                 </p>` : ""}
                 <div class="mt-auto pt-3 flex flex-wrap gap-2 text-xs">
-                    ${safeUrl(r.website) ? `<a href="${escapeAttr(safeUrl(r.website))}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer">
+                    ${safeUrl(r.website) ? `<a href="${escapeAttr(safeUrl(r.website))}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-2 py-1 rounded-full glass-subtle hover:bg-white/60 text-slate-700 transition-colors cursor-pointer">
                         <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                         Website
                     </a>` : ""}
-                    ${safeUrl(r.mapsUrl) ? `<a href="${escapeAttr(safeUrl(r.mapsUrl))}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-50 hover:bg-amber-100 text-primary transition-colors cursor-pointer">
+                    ${safeUrl(r.mapsUrl) ? `<a href="${escapeAttr(safeUrl(r.mapsUrl))}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100/70 backdrop-blur hover:bg-amber-100 text-primary transition-colors cursor-pointer">
                         <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                         Google Maps
                     </a>` : ""}
@@ -332,10 +332,10 @@
 
     function showStatus(type, message) {
         const classes = {
-            error: "bg-red-50 border-red-200 text-red-700",
-            info: "bg-amber-50 border-amber-200 text-amber-800",
+            error: "bg-red-50/80 backdrop-blur border-red-200 text-red-700",
+            info: "bg-amber-50/80 backdrop-blur border-amber-200 text-amber-800",
         };
-        statusEl.className = `border rounded-lg px-4 py-3 text-sm ${classes[type] || classes.info}`;
+        statusEl.className = `border rounded-2xl px-4 py-3 text-sm ${classes[type] || classes.info}`;
         statusEl.textContent = message;
         statusEl.classList.remove("hidden");
     }
