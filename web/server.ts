@@ -15,9 +15,10 @@ const PUBLIC_DIR = path.join(__dirname, "public");
 // Dinaikkan dari 60s karena sekarang ada langkah tambahan (warm-up +
 // enrichment nomor telepon lewat halaman detail) yang butuh waktu lebih.
 const SEARCH_TIMEOUT_MS = 120000;
-// Set EXPOSE_ERROR_DETAILS=0 di production/publik supaya client cuma
-// dapat pesan generik (detail lengkap tetap dicatat di log server).
-const EXPOSE_ERROR_DETAILS = process.env.EXPOSE_ERROR_DETAILS !== "0";
+// Default aman: client cuma dapat pesan generik (detail lengkap tetap
+// dicatat di log server). Set EXPOSE_ERROR_DETAILS=1 secara eksplisit
+// kalau memang perlu detail error tampil ke client (misal saat dev lokal).
+const EXPOSE_ERROR_DETAILS = process.env.EXPOSE_ERROR_DETAILS === "1";
 
 // --- Rate limit & concurrency guard sederhana untuk /api/search ---
 // Setiap request Puppeteer membuka Chrome penuh (berat di CPU/RAM).

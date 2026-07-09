@@ -24,6 +24,33 @@ function pickUA(): string {
     return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
 }
 
+// --- Rate limiting (best-effort) -----------------------------------------
+// NOTE: Vercel serverless functions are stateless per-invocation and may be
+// spread across multiple concurrent lambda instances/regions, so this
+// in-memory map only limits requests that happen to land on the same warm
+// instance. It is NOT a reliable global rate limit — treat it as a cheap
+// speed bump against naive abuse, not a security boundary. A correct fix
+// requires a shared store (e.g. Redis/Upstash) or Vercel Edge Config, which
+// is intentionally out of scope here to avoid adding a new external
+// dependency. Mirrors the limits used in web/server.ts.
+const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
+const RATE_LIMIT_MAX_REQUESTS = 15;
+const requestLog = new Map<string, number[]>();
+
+function isRateLimited(ip: string): boolean {
+    const now = Date.now();
+    const timestamps = (requestLog.get(ip) || []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+    timestamps.push(now);
+    requestLog.set(ip, timestamps);
+    return timestamps.length > RATE_LIMIT_MAX_REQUESTS;
+}
+
+function getClientIp(req: VercelRequest): string {
+    const fwd = req.headers["x-forwarded-for"];
+    const ip = Array.isArray(fwd) ? fwd[0] : fwd;
+    return (ip ? ip.split(",")[0].trim() : undefined) || req.socket?.remoteAddress || "unknown";
+}
+
 function extractPhone(text: string): string {
     const patterns = [
         /(?:\+62|062|62|0)[\s-]?\d{2,4}[\s-]?\d{3,4}[\s-]?\d{3,5}/,
@@ -255,6 +282,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (!keyword || !location) {
             return res.status(400).json({
                 error: "Parameter 'keyword' dan 'location' wajib diisi.",
+            });
+        }
+
+        const clientIp = getClientIp(req);
+        if (isRateLimited(clientIp)) {
+            return res.status(429).json({
+                error: `Terlalu banyak permintaan. Maksimal ${RATE_LIMIT_MAX_REQUESTS} pencarian per 5 menit, coba lagi sebentar lagi.`,
             });
         }
 

@@ -80,8 +80,7 @@ export async function facebookdlv2(url: string): Promise<FacebookDownloaderV2> {
 				"accept-encoding": "gzip, deflate, br",
 				"accept-language": "en-US,en;q=0.9",
 				"content-type": "application/x-www-form-urlencoded",
-				cookie:
-					"PHPSESSID=8bp3pmf9b22vm9ihvuv6pn1h3d; current_language=id; _ga=GA1.2.5314845.1641630867; _gid=GA1.2.1966536698.1641630867; _gat=1; __gads=ID=66279abc1ad9d914-226d4524bccf00f8:T=1641630868:RT=1641630868:S=ALNI_MbL7LSCkGI6VwO33W7V6VkOozebNg; __atuvc=1%7C1; __atuvs=61d94c9354d617a5000; __atssc=google%3B1",
+				cookie: process.env.FACEBOOK_COOKIE || "",
 				origin: "https://snapsave.app",
 				referer: "https://snapsave.app/id",
 				"user-agent":
@@ -127,7 +126,7 @@ export async function facebookdlv3(url: string): Promise<FacebookDownloaderV3> {
 			"accept-encoding": "gzip, deflate, br",
 			"accept-language": "en-US,en;q=0.9",
 			"content-type": "application/x-www-form-urlencoded",
-			cookie: "_ga=GA1.2.887753826.1642391325; _gid=GA1.2.2022692773.1642391325; __gads=ID=4ea88e3817c8d71b-22332defffcf0045:T=1642391326:RT=1642391326:S=ALNI_MY3oJyiEG_b8KXZBJ7RqvN2Mn8wbw; XSRF-TOKEN=eyJpdiI6ImdNUElWWU83S01jOTdZeitCUWdkWXc9PSIsInZhbHVlIjoiTGxnaE9oRVJTKzA5NDBncUtBa0xEdCtqNHBJXC9ZMVFPR1U2RnBSYUFzZHltWElZS2VtVUltUTJ2TjB5V3pEeTYzRUNMcENjMURGSkhBXC9OUitpcjMrZz09IiwibWFjIjoiMTViZTNjZDI3ZTZmOTk2ZWRjOWM1NTA5MTU2NDFhYWFlMjIxNTQxZTJlYjliMjJiMzE3YzlkNGMxODc2NjhmMCJ9; laravel_session=eyJpdiI6IjhZbElIRmpLSkVqZGZpQXJoK2MzVHc9PSIsInZhbHVlIjoianBSSFhPb2t0RFY4Q1wvYkk1S3pxMUNxXC82b0U1NHZROTVpS1Z4dGhES3ZTYTNsenJUSXpwcWNMVDkwWFk4OUY1TitGNmlDK1RXbTVyREVzcHVoRnRidz09IiwibWFjIjoiY2U1YzI2ODZlYWI2NzFkZDU1NTQ5Zjk0M2NmMDc2MTZhY2M3ODQxYjljZGUzMDQwMTYxZGQwZGYxMDM3NDMyZSJ9; __cf_bm=ephRNXRqwgrTB4SmHlsudy886EfsR2Ns2KtXVBnph4I-1642392732-0-AXtTUW5HRNQUeUcTJPhJTOPlMcjBFmMyoLKYOnxrDZ6Fa06XaJ4pMNW9arLg4zco/ef+ji00IV8NZb0nGOAKgfg=; _gat=1; __atuvc=6%7C3; __atuvs=61e4e71d2b803588005; __atssc=google%3B3",
+			cookie: process.env.FACEBOOK_COOKIE || "",
 			origin: "https://www.getfvid.com",
 			referer: "https://www.getfvid.com/",
 			"user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36"
