@@ -188,7 +188,7 @@ export async function instagramdlv4(url: string): Promise<InstagramDownloaderV4[
 	}
 	const data: string = await got('https://instadownloader.co/insta_downloader.php', {
 		headers: {
-			cookie: "PHPSESSID=dbe8354b8babda16509d1937c61f3283; _ga=GA1.2.1733350350.1642305936; _gid=GA1.2.372020418.1642305936; _gat=1; __gads=ID=b4bd840227b997e8-22bf10a0f9cf00c8:T=1642305940:RT=1642305940:S=ALNI_MYAmf2IjxwGlzs5qXm4WFoP5pgocg",
+			cookie: process.env.INSTAGRAM_COOKIE || "",
 			referer: "https://instadownloader.co/id/",
 			"user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36"
 		},
@@ -220,7 +220,7 @@ export async function instagramStory(name: string): Promise<InstagramStory> {
 				Object.entries(params) as string[][]
 			),
 			headers: {
-				Cookie: '__gads=ID=a0129f64c017a213-2229f80500d0003f:T=1642402102:RT=1642402102:S=ALNI_MYpfNSDYSzzQdpadtBXJczU1ZrfKQ; FCNEC=[["AKsRol8c44yP5_EyHSe8zIa4WwUMzK96oz8pPcTILK6NBeERGaGQTAoVdmG95d2DWhkj71HeAJEKMBmudTLabT_7FubgP2ES5eiqmI3458TB2AL6HSJtR0c7ZUiC3c8K-Da1kNJD5dKtON5UulOJWOsEO3tS1zERdA=="],null,[]]',
+				Cookie: process.env.INSTAGRAM_STORY_COOKIE || "",
 				Host: 'www.insta-stories.net',
 				Referer: 'https://www.insta-stories.net/',
 				'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36'
@@ -254,7 +254,7 @@ export async function instagramStory(name: string): Promise<InstagramStory> {
 export async function instagramStoryv2(name: string): Promise<InstagramStoryv2> {
 	const headers: Headers = {
 		accept: "*/*",
-		cookie: '_ga=GA1.2.1814586753.1642307018; _gid=GA1.2.136857157.1642307018; __gads=ID=6f5ca6608dd8b1e9-22e4ea18ffcf0077:T=1642307019:RT=1642307019:S=ALNI_MZA7NeGtOEcSPXyFhf4LY8w7Myg9g; PHPSESSID=1i9dscs75l6v2h17cvdtd587b4; _gat=1; FCNEC=[["AKsRol9R3FQaOjrrETFMIMIvWtuoY3xRHpQEPHMujRWOd_nxuLgWCSyYK9lLC3ev0L5V8fuaSIjhupCtaReRepP4qNvch536pzvrcU13Gh8CRHSEIh8O3zM42ASwGUQfjoKbxkTV1L15EA6O7FLZ-Qh3Fy1rvh_h8w=="],null,[]]',
+		cookie: process.env.INSTAGRAM_STORYV2_COOKIE || "",
 		"user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36"
 	};
 	const data = await got("https://www.instagramsave.com/instagram-story-downloader.php", {
