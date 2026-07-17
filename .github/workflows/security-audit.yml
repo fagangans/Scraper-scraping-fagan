@@ -1,9 +1,12 @@
 name: Weekly security self-audit
 
 on:
-  schedule:
+  # Cron dimatikan sementara -- VPS FaiAudit (endpoint ingest) nonaktif,
+  # jangan biarkan job ini gagal terus tiap minggu tanpa guna. Nyalakan lagi
+  # (hapus komentar 2 baris di bawah) begitu FaiAudit online lagi.
+  # schedule:
     # Setiap Senin jam 03:00 UTC (~10:00 WIB). Ubah sesuai selera.
-    - cron: "0 3 * * 1"
+    #   - cron: "0 3 * * 1"
   workflow_dispatch: {} # supaya bisa dipicu manual dari tab Actions -> "Run workflow"
 
 jobs:
